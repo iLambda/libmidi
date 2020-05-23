@@ -29,7 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "midi.h"
+#include "libmidi.h"
 
 /*
  * Masks / patterns that define leading high bits; these are used to 
@@ -76,7 +76,7 @@
  * Enumeration that represents the states that the MIDI protocol
  * state machine can be in.
  */
-enum PROTOCOL_STATE {
+enum PROTOCOL_STATE : uint8_t {
     // The machine is waiting for a status byte.
     STATE_WAITING_FOR_STATUS = 0,
     STATE_ERROR = 1,
@@ -123,37 +123,33 @@ enum PROTOCOL_STATE {
  */
 
 // State of the "MIDI protocol state machine"
-static char g_state = STATE_WAITING_FOR_STATUS;
+static uint8_t g_state = STATE_WAITING_FOR_STATUS;
 
 // Last bytes received, saved for debugging.
-static char g_debug_last_status_byte = 0;
-static char g_debug_last_data_byte = 0;
+static uint8_t g_debug_last_status_byte = 0;
+static uint8_t g_debug_last_data_byte = 0;
 
 // The following three variables are updated during message parsing.
-static char g_current_channel = 0;
-static char g_data_byte_one = 0;
-static char g_data_byte_two = 0;
+static uint8_t g_current_channel = 0;
+static uint8_t g_data_byte_one = 0;
+static uint8_t g_data_byte_two = 0;
 
 // Counter that records number of complete MIDI messages received.
-static unsigned long g_message_counter = 0;
+static uint32_t g_message_counter = 0;
 
 
-// Callback table.
-static midi_event_callback_t g_callbacks[EVT_MAX] = {0};
+// Callback.
+static libmidi_event_callback_t g_callback = nullptr;
 
 // Wrapper that invokes callback functions.
-static inline void invoke_callback(int evt) {
-    // Reject invalid events.
-    if ((evt < 0) || (evt >= EVT_MAX)) {
-        return;
-    }
-    
+__STATIC_FORCEINLINE void invoke_callback(libmidi_event_type event) {
     // Increment the global event counter.
     ++g_message_counter;
     
     // Invoke the callback.
-    (g_callbacks[evt])(g_current_channel, g_data_byte_one, g_data_byte_two);
-    
+    if (g_callback) {
+        g_callback(event, g_current_channel, g_data_byte_one, g_data_byte_two);
+    }    
     // Clear data state
     g_data_byte_one = 0;
     g_data_byte_two = 0;
@@ -176,7 +172,7 @@ static inline void invoke_callback(int evt) {
  * and then processing of the MIDI byte stream should continue as though the
  * real-time byte was never received.
  */
-static status_t rx_status_sys_realtime_byte(char byte) {
+static int8_t rx_status_sys_realtime_byte(uint8_t byte) {
     switch (byte) {
         case SYS_REALTIME_TIMING_CLOCK:
             invoke_callback(EVT_SYS_REALTIME_TIMING_CLOCK);
@@ -215,16 +211,16 @@ static status_t rx_status_sys_realtime_byte(char byte) {
 
 
 // Process a "system common" status byte (0 or more data bytes follow.)
-static status_t rx_status_sys_common_byte(char byte) {
+static int8_t rx_status_sys_common_byte(uint8_t byte) {
     // TODO(tdial): Implement
     return 0;
 }
 
 
 // Process a "channel" status byte. (1 or 2 data bytes follow.)
-static status_t rx_status_channel_byte(char byte) {
+static int8_t rx_status_channel_byte(uint8_t byte) {
     // Mask of the channel bits, leaving only the message type.
-    const char type = (byte & CHAN_TYPE_MASK);
+    const uint8_t type = (byte & CHAN_TYPE_MASK);
     
     // Update the state machine with the MIDI channel of the message that
     // we are now processing. This is held in a global.
@@ -268,7 +264,7 @@ static status_t rx_status_channel_byte(char byte) {
 
 
 // Process a trailing data byte.
-static status_t rx_data_byte(char byte) {
+static int8_t rx_data_byte(uint8_t byte) {
     switch (g_state) {
         // Process first byte of a "note off" message.
         case STATE_WAITING_CHAN_NOTE_OFF_KEY:
@@ -369,28 +365,13 @@ static status_t rx_data_byte(char byte) {
  * Public APIs                                                              *
  ****************************************************************************/
 
-
-status_t midi_init() {
-    // Initialize the callback table; all events to the null callback.
-    for (int i = 0; i < EVT_MAX; ++i) {
-        g_callbacks[i] = null_event_cb;
-    }
-    return 0;
+void libmidi_event_handler(libmidi_event_callback_t cb) {
+    // Save the callback
+    g_callback = cb;
 }
 
 
-status_t midi_register_event_handler(event_type evt, midi_event_callback_t cb) {
-    if (cb) {
-        g_callbacks[evt] = cb;
-    } else {
-        g_callbacks[evt] = null_event_cb;
-    }
-    
-    return 0;    
-}
-
-
-status_t midi_receive_byte(char byte) {
+int8_t libmidi_receive_byte(uint8_t byte) {
     /*
      * The statements below, which are performed in deliberate order, determine
      * which type of byte has arrived on the input. First, we test the lead

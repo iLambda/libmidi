@@ -31,13 +31,8 @@
 #ifndef MIDI_H_INCLUDED_
 #define MIDI_H_INCLUDED_
 
-#include <stdint.h>
+#include <mbed.h>
 
-#ifdef	__cplusplus
-extern "C" {
-#endif
-
-    
 /*
  * As libmidi is primarily intended for use in embedded environments, users
  * will likely need to configure their UART. The MIDI_BAUD_RATE macro is
@@ -45,30 +40,6 @@ extern "C" {
  * This constant is not used by libmidi.
  */
 #define MIDI_BAUD_RATE  31250
-
-
-/*
- * Routines return a status code.
- */
-typedef signed char status_t;
-    
-
-/*
- * This library uses an event-driven paradigm for receiving data: callers
- * register callback functions for events they are interested in, and these
- * are invoked when events are received.
- * 
- * For the sake of simplicity, we define one type, midi_event_callback_t for
- * all callback functions. Please note that some parameters are unused in
- * certain contexts: the documentation is clear on what parameters are valid
- * for each event type.
- * 
- * The caller is only obligated to register callback functions for those
- * events she is interested in; other events will be dispatched to a null
- * handler implements within the library.
- */
-typedef void (*midi_event_callback_t)(uint8_t chan, uint8_t data1, uint8_t data2);
-
 
 /*
  * Error codes returned by library functions.
@@ -81,10 +52,10 @@ enum {
 
 /*
  * As noted elsewhere, libmidi is event-driven, and handles received data
- * via a callback mechanism. The enumeration values of event_type describe
+ * via a callback mechanism. The enumeration values of libmidi_event_type describe
  * the different types of events for which callers may register. 
  */
-typedef enum event_type {
+enum libmidi_event_type : uint8_t {
     /*
      * System real-time messages.
      */
@@ -113,30 +84,32 @@ typedef enum event_type {
      * that we support above. 
      */
     EVT_MAX
-} event_type;
+};
 
 
-/**
- * Initialize the MIDI library. This routine must be called prior to using
- * library functions or unpredictable behavior may result.
+/*
+ * This library uses an event-driven paradigm for receiving data: callers
+ * register callback functions for events they are interested in, and these
+ * are invoked when events are received.
  * 
- * @return Zero on success; nonzero status otherwise.
+ * For the sake of simplicity, we define one type, libmidi_event_callback_t for
+ * all callback functions. Please note that some parameters are unused in
+ * certain contexts: the documentation is clear on what parameters are valid
+ * for each event type.
+ * 
+ * The caller is only obligated to register callback functions for those
+ * events she is interested in; other events will be dispatched to a null
+ * handler implements within the library.
  */
-status_t midi_init();
+typedef void (*libmidi_event_callback_t)(libmidi_event_type event, uint8_t chan, uint8_t data1, uint8_t data2);
 
 
 /**
- * Register an event handler for the specified event. To clear an event
+ * Register an event handler for incoming midi events. To clear an event
  * handler, simply pass a NULL pointer for the callback argument.
  * 
- * Returns  0 if a callback was registered or cleared successfully.
- * Returns -1 if the event type was invalid.
- * 
- * @param evt Event to register. See the EVT_xxx enumerations, above.
- * @param cb Function to invoke upon receipt of the MIDI event.
- * @return Status code indicating (see above for comments.)
  */
-status_t midi_register_event_handler(event_type evt, midi_event_callback_t cb);
+void libmidi_event_handler(libmidi_event_callback_t cb);
 
 
 /**
@@ -155,11 +128,6 @@ status_t midi_register_event_handler(event_type evt, midi_event_callback_t cb);
  * 
  * @return Number of callback invocations. Returns negative status on error.
  */
-status_t midi_receive_byte(char byte);
-
-
-#ifdef	__cplusplus
-}
-#endif
+int8_t libmidi_receive_byte(uint8_t byte);
 
 #endif  /* MIDI_H_INCLUDED_ */ 
