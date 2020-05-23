@@ -33,10 +33,8 @@ discuss incorporating any changes that might be necessary.
 The following list outlines the steps, in order, that the programmer
 must take to use the library.
 
-1. Call **midi_init()** to perform one-time initializaton of globals.
-2. Call **midi_register_event_handler()** to register callbacks for
-   events (note on, note off, etc.)
-3. Call **midi_receive_byte()** once for every byte received on the
+1. Call **libmidi_event_handler()** to register a callback that will be called whenever a midi message is received
+2. Call **libmidi_receive_byte()** once for every byte received on the
    UART device. Calling this function "drives" the event dispatch
    system and may result in callback invocation.
 
