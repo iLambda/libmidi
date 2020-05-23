@@ -31,6 +31,8 @@
 #ifndef MIDI_H_INCLUDED_
 #define MIDI_H_INCLUDED_
 
+#include <stdint.h>
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -65,7 +67,7 @@ typedef signed char status_t;
  * events she is interested in; other events will be dispatched to a null
  * handler implements within the library.
  */
-typedef void (*midi_event_callback_t)(char chan, char data1, char data2);
+typedef void (*midi_event_callback_t)(uint8_t chan, uint8_t data1, uint8_t data2);
 
 
 /*

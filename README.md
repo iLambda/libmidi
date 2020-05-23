@@ -3,23 +3,10 @@
 The goal of the libmidi project is to provide a high-quality MIDI
 software implementation that is suitable for use on microcontrollers.
 
-Initially, the PIC18 family of microcontrollers will be supported
-using the Microchip (TM) XC8 compiler. A Makefile is provided for
-that environment.
+This particular repository is a fork of [mikromodular/libmidi](https://github.com/mikromodular/libmidi), initially made for PIC18. This fork aims to port it to mbed, and add small optimisations whenever possible.
 
-This library is ALPHA; it has not been thoroughly reviewed or
-tested at this time.
-
-## Building
-
-    git clone https://github.com/mikromodular/libmidi
-    cd libmidi
-    make
-
-This assumes that the Microchip XC8 compiler suite is installed on
-your system. Installing this software is beyond the scope of this
-README. Please see http://www.microchip.com/mplab/compilers for
-more details.
+>  **Disclaimer from the original repository** : This library is ALPHA; it has not been thoroughly reviewed or
+> tested at this time.
 
 ## Priciples of Operation
 
